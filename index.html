@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Patent Database</title>
+  <!-- Load PapaParse to read CSV spreadsheets automatically -->
+  <script src="https://cloudflare.com"></script>
+  <style>
+    :root {
+      --primary: #1a56db;
+      --excel: #15803d;
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --text: #1e293b;
+      --muted: #64748b;
+      --border: #e2e8f0;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      margin: 0;
+      padding: 2rem 1rem;
+    }
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+    header {
+      margin-bottom: 2rem;
+      border-bottom: 2px solid var(--border);
+      padding-bottom: 1rem;
+    }
+    h1 {
+      margin: 0 0 0.5rem 0;
+      font-size: 1.85rem;
+    }
+    .subtitle {
+      color: var(--muted);
+      margin: 0;
+    }
+    .controls {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    input[type="text"] {
+      flex: 1;
+      padding: 0.75rem 1rem;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 1rem;
+      background: var(--card);
+    }
+    .table-wrapper {
+      background: var(--card);
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      overflow-x: auto;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+    th, td {
+      padding: 1rem;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+    th {
+      background-color: #f1f5f9;
+      font-weight: 600;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+    tr:hover {
+      background-color: #f8fafc;
+    }
+    .file-link {
+      display: inline-block;
+      text-decoration: none;
+      font-weight: 500;
+      padding: 0.35rem 0.65rem;
+      border-radius: 5px;
+      font-size: 0.875rem;
+    }
+    .pdf-link {
+      color: var(--primary);
+      background-color: #eff6ff;
+    }
+    .pdf-link:hover {
+      background-color: #dbeafe;
+    }
+    .excel-link {
+      color: var(--excel);
+      background-color: #f0fdf4;
+    }
+    .excel-link:hover {
+      background-color: #dcfce7;
+    }
+    .status-msg {
+      text-align: center;
+      padding: 2rem;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <h1>Patent Database</h1>
+    <p class="subtitle">Search patents by patent number, target, or company.</p>
+  </header>
+
+  <div class="controls">
+    <input type="text" id="searchInput" placeholder="Search by patent number, target, or company...">
+  </div>
+
+  <div class="table-wrapper">
+    <table id="patentTable">
+      <thead>
+        <tr>
+          <th>Patent Number</th>
+          <th>Target</th>
+          <th>Company</th>
+          <th>PDF File</th>
+          <th>Patent Data in Excel</th>
+        </tr>
+      </thead>
+      <tbody id="patentBody">
+        <tr><td colspan="5" class="status-msg">Loading patent database...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+  let patents = [];
+  const tbody = document.getElementById("patentBody");
+  const searchInput = document.getElementById("searchInput");
+
+  // Fetch and parse patents.csv automatically
+  Papa.parse("patents.csv", {
+    download: true,
+    header: true,
+    skipEmptyLines: true,
+    complete: function(results) {
+      patents = results.data;
+      renderPatents();
+    },
+    error: function() {
+      tbody.innerHTML = '<tr><td colspan="5" class="status-msg">Error loading patents.csv. Make sure you are viewing this on a web server or GitHub Pages.</td></tr>';
+    }
+  });
+
+  function renderPatents() {
+    const query = searchInput.value.toLowerCase().trim();
+    tbody.innerHTML = "";
+
+    const filtered = patents.filter(p => {
+      const searchableText = `${p.number || ""} ${p.target || ""} ${p.company || ""}`.toLowerCase();
+      return searchableText.includes(query);
+    });
+
+    if (filtered.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" class="status-msg">No matching patents found.</td></tr>';
+      return;
+    }
+
+    filtered.forEach(p => {
+      const cleanNumber = p.number.trim();
+      const row = `
+        <tr>
+          <td><strong>${cleanNumber}</strong></td>
+          <td>${p.target || ""}</td>
+          <td>${p.company || ""}</td>
+          <td style="white-space: nowrap;">
+            <a href="files/${cleanNumber}.pdf" target="_blank" rel="noopener" class="file-link pdf-link">View PDF</a>
+          </td>
+          <td style="white-space: nowrap;">
+            <a href="files/${cleanNumber}.xlsx" download class="file-link excel-link">Download Excel</a>
+          </td>
+        </tr>
+      `;
+      tbody.insertAdjacentHTML("beforeend", row);
+    });
+  }
+
+  searchInput.addEventListener("input", renderPatents);
+</script>
+
+</body>
+</html>
