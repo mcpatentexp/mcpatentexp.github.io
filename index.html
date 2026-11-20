@@ -152,11 +152,12 @@
   const tbody = document.getElementById("patentBody");
   const searchInput = document.getElementById("searchInput");
 
-      function buildWipoUrl(patentNumber) {
-    let clean = patentNumber.replace(/[\s\-\/]/g, "").toUpperCase();
-    let docId = clean.replace(/[A-Z]\d?$/, "");
-    return `https://wipo.int{encodeURIComponent(docId)}`;
+        function buildWipoUrl(patentNumber) {
+    var clean = patentNumber.replace(/[\s\-\/]/g, "").toUpperCase();
+    var docId = clean.replace(/[A-Z]\d?$/, "");
+    return "https://patentscope.wipo.int/search/en/detail.jsf?docId=" + docId;
   }
+
 
 
 
