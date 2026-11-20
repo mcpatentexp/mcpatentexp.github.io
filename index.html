@@ -88,11 +88,11 @@
       border-radius: 5px;
       font-size: 0.875rem;
     }
-    .pdf-link {
+    .wipo-link {
       color: var(--primary);
       background-color: #eff6ff;
     }
-    .pdf-link:hover {
+    .wipo-link:hover {
       background-color: #dbeafe;
     }
     .excel-link {
@@ -105,6 +105,12 @@
     .status-msg {
       text-align: center;
       padding: 2rem;
+      color: var(--muted);
+    }
+    footer {
+      margin-top: 2rem;
+      text-align: center;
+      font-size: 0.85rem;
       color: var(--muted);
     }
   </style>
@@ -128,7 +134,7 @@
           <th>Patent Number</th>
           <th>Target</th>
           <th>Company</th>
-          <th>PDF File</th>
+          <th>WIPO Patent</th>
           <th>Patent Data in Excel</th>
         </tr>
       </thead>
@@ -137,12 +143,25 @@
       </tbody>
     </table>
   </div>
+
+  <footer>
+    Patent records link directly to the official WIPO PATENTSCOPE database.
+  </footer>
 </div>
 
 <script>
   let patents = [];
   const tbody = document.getElementById("patentBody");
   const searchInput = document.getElementById("searchInput");
+
+  // Helper function to format patent numbers for WIPO PATENTSCOPE URLs
+  function buildWipoUrl(patentNumber) {
+    // Remove spaces/hyphens and uppercase (e.g., "WO 2023/123456 A1" -> "WO2023123456A1")
+    let clean = patentNumber.replace(/[\s\-\/]/g, "").toUpperCase();
+    // Strip trailing kind code (e.g., A1, A2, B1, B2) because WIPO docId uses base number
+    let docId = clean.replace(/[A-Z]\d?$/, "");
+    return `https://wipo.int{encodeURIComponent(docId)}`;
+  }
 
   // Fetch and parse patents.csv automatically
   Papa.parse("patents.csv", {
@@ -154,7 +173,7 @@
       renderPatents();
     },
     error: function() {
-      tbody.innerHTML = '<tr><td colspan="5" class="status-msg">Error loading patents.csv. Make sure you are viewing this on a web server or GitHub Pages.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="5" class="status-msg">Error loading patents.csv. Make sure you are viewing this on GitHub Pages.</td></tr>';
     }
   });
 
@@ -173,17 +192,20 @@
     }
 
     filtered.forEach(p => {
-      const cleanNumber = p.number.trim();
+      const rawNumber = p.number.trim();
+      const fileSafeNumber = rawNumber.replace(/[\s\-\/]/g, "");
+      const wipoUrl = buildWipoUrl(rawNumber);
+
       const row = `
         <tr>
-          <td><strong>${cleanNumber}</strong></td>
+          <td><strong>${rawNumber}</strong></td>
           <td>${p.target || ""}</td>
           <td>${p.company || ""}</td>
           <td style="white-space: nowrap;">
-            <a href="files/${cleanNumber}.pdf" target="_blank" rel="noopener" class="file-link pdf-link">View PDF</a>
+            <a href="${wipoUrl}" target="_blank" rel="noopener" class="file-link wipo-link">View on WIPO &rarr;</a>
           </td>
           <td style="white-space: nowrap;">
-            <a href="files/${cleanNumber}.xlsx" download class="file-link excel-link">Download Excel</a>
+            <a href="files/${fileSafeNumber}.xlsx" download class="file-link excel-link">Download Excel</a>
           </td>
         </tr>
       `;
