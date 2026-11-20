@@ -4,8 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Patent Database</title>
-  <!-- Load PapaParse to read CSV spreadsheets automatically -->
-  <script src="https://cloudflare.com"></script>
   <style>
     :root {
       --primary: #1a56db;
@@ -154,28 +152,50 @@
   const tbody = document.getElementById("patentBody");
   const searchInput = document.getElementById("searchInput");
 
-  // Helper function to format patent numbers for WIPO PATENTSCOPE URLs
   function buildWipoUrl(patentNumber) {
-    // Remove spaces/hyphens and uppercase (e.g., "WO 2023/123456 A1" -> "WO2023123456A1")
     let clean = patentNumber.replace(/[\s\-\/]/g, "").toUpperCase();
-    // Strip trailing kind code (e.g., A1, A2, B1, B2) because WIPO docId uses base number
     let docId = clean.replace(/[A-Z]\d?$/, "");
     return `https://wipo.int{encodeURIComponent(docId)}`;
   }
 
-  // Fetch and parse patents.csv automatically
-  Papa.parse("patents.csv", {
-    download: true,
-    header: true,
-    skipEmptyLines: true,
-    complete: function(results) {
-      patents = results.data;
+  // Built-in CSV parser (handles commas inside quotes properly)
+  function parseCSV(text) {
+    const lines = text.trim().split(/\r?\n/);
+    if (lines.length < 2) return [];
+    const headers = lines[0].split(",").map(h => h.trim().toLowerCase());
+    
+    return lines.slice(1).map(line => {
+      const values = line.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || line.split(",");
+      const obj = {};
+      headers.forEach((header, i) => {
+        let val = (values[i] || "").trim();
+        if (val.startsWith('"') && val.endsWith('"')) {
+          val = val.slice(1, -1);
+        }
+        obj[header] = val;
+      });
+      return obj;
+    });
+  }
+
+  // Fetch patents.csv using native browser fetch (no external libraries needed)
+  fetch("patents.csv?v=" + Date.now())
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`Could not find patents.csv (HTTP ${response.status})`);
+      }
+      return response.text();
+    })
+    .then(csvText => {
+      patents = parseCSV(csvText);
       renderPatents();
-    },
-    error: function() {
-      tbody.innerHTML = '<tr><td colspan="5" class="status-msg">Error loading patents.csv. Make sure you are viewing this on GitHub Pages.</td></tr>';
-    }
-  });
+    })
+    .catch(err => {
+      tbody.innerHTML = `<tr><td colspan="5" class="status-msg" style="color: #b91c1c;">
+        <strong>Error:</strong> ${err.message}.<br>
+        <span style="font-size: 0.85rem;">(Note: This must be viewed on your live GitHub Pages URL, not by double-clicking the file locally.)</span>
+      </td></tr>`;
+    });
 
   function renderPatents() {
     const query = searchInput.value.toLowerCase().trim();
@@ -192,6 +212,7 @@
     }
 
     filtered.forEach(p => {
+      if (!p.number) return;
       const rawNumber = p.number.trim();
       const fileSafeNumber = rawNumber.replace(/[\s\-\/]/g, "");
       const wipoUrl = buildWipoUrl(rawNumber);
