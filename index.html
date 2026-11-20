@@ -152,11 +152,12 @@
   const tbody = document.getElementById("patentBody");
   const searchInput = document.getElementById("searchInput");
 
-    function buildWipoUrl(patentNumber) {
+      function buildWipoUrl(patentNumber) {
     let clean = patentNumber.replace(/[\s\-\/]/g, "").toUpperCase();
     let docId = clean.replace(/[A-Z]\d?$/, "");
-    return "https://wipo.int" + encodeURIComponent(docId);
+    return `https://wipo.int{encodeURIComponent(docId)}`;
   }
+
 
 
   // Built-in CSV parser (handles commas inside quotes properly)
